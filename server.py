@@ -39,6 +39,27 @@ def buscarUsuario(username, password):
     else:
         return("No se encontro el usuario ingresado")
 
+def buscar(username):
+    conexion = sqlite3.connect('chat.db')
+    cursor = conexion.cursor()
+    query = f"SELECT * FROM usuarios WHERE usuario = '{username}'"
+    cursor.execute(query)
+    usuario = cursor.fetchall()
+    conexion.commit()
+    conexion.close()
+    if usuario:
+        return(1)
+    else:
+        return(0)
+
+def insertarUsuario(nombres, apellidos, usuario, password, edad, genero):
+    conexion = sqlite3.connect('chat.db')
+    cursor = conexion.cursor()
+    query = f"INSERT INTO usuarios VALUES ('{nombres}', '{apellidos}', '{usuario}', '{password}', {edad}, '{genero}', 0)"
+    cursor.execute(query)
+    conexion.commit()
+    conexion.close()
+
 def controlador(client, address, usuario):
     if usuario.estado == 0:
         print(f"el usuario {str(address)} no ha iniciado sesion")
@@ -55,6 +76,22 @@ def controlador(client, address, usuario):
                 controlador(client, address, usuario)            
             else:
                 client.send('inicio_error'.encode())
+                controlador(client, address, usuario)
+        if opcion == 'registrar':
+            client.send('registrar'.encode())
+            username = client.recv(1024).decode()
+            if buscar(username) == 1:
+                client.send('username_error'.encode())
+                controlador(client, address, usuario)
+            else:
+                client.send(f'El username {username} esta libre'.encode())
+                nombres = client.recv(1024).decode()
+                apellidos = client.recv(1024).decode()
+                password = client.recv(1024).decode()
+                edad = client.recv(1024).decode()
+                genero = client.recv(1024).decode()
+                insertarUsuario(nombres, apellidos, username, password, edad, genero)
+                client.send('Registro Completado'.encode())
                 controlador(client, address, usuario)
     else:
         client.send(f'Has iniciado correctamente {usuario.nombres}. Bienvenido'.encode())
