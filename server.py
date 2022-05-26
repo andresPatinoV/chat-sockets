@@ -60,6 +60,17 @@ def insertarUsuario(nombres, apellidos, usuario, password, edad, genero):
     conexion.commit()
     conexion.close()
 
+
+def broadcast(_message, username):
+    if _client == 'Servidor':
+        message = f"Servidor: {_message}"
+    else:
+        message = f"{username}: {_message}"
+    for client in clients:
+        if client != _client:
+            client.send(message.encode())
+
+
 def controlador(client, address, usuario):
     if usuario.estado == 0:
         print(f"el usuario {str(address)} no ha iniciado sesion")
@@ -94,7 +105,24 @@ def controlador(client, address, usuario):
                 client.send('Registro Completado'.encode())
                 controlador(client, address, usuario)
     else:
-        client.send(f'Has iniciado correctamente {usuario.nombres}. Bienvenido'.encode())
+        client.send(f'Bienvenido {usuario.nombres}. Has iniciado sesión correctamente'.encode())
+        while True:
+            message = client.recv(1024).decode()
+            print(f'{usuario.usuario}: {message}')
+            if message == '#exit': #exit. Desconectará al cliente del servidor
+                index = clients.index(client)
+                username = usernames[index]
+                broadcast(f"{username} se ha desconectado", 'Servidor')
+                clients.remove(client)
+                usernames.remove(username)
+                client.close()
+            if message == '#show users': #show users: Muestra el listado el todos los usuarios en todo el sistema
+                show_users = f"Usuarios conectados: "
+                for username in usernames:
+                    show_users += f" -{username}"
+                client.send(f"Servidor: {show_users}".encode())
+            ''''else:
+                broadcast(message.decode(), usuario.usuario)'''
 
 
 

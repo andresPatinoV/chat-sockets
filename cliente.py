@@ -25,17 +25,29 @@ def menu():
     if opcion == '2':
         return('registrar')
 
-def write_messages():
+def receive_messages():
+    while True:
+        try:
+            message = client.recv(1024).decode()
+            if message == "@username":
+                client.send(username.encode())
+            else:
+                print(message)
+        except:
+            client.close()
+            break
+
+def write_messages(usuario):
     while True:
         message = input('')
-        if message == '/exit':
+        if message == '#exit':
             client.send(message.encode())
             print('Sesion cerrada')
             client.close()
             sys.exit()
         else:
             client.send(message.encode())
-    
+
 def iniciar(usuario):
     if usuario.estado == 0:
         opcion = menu()
@@ -74,6 +86,12 @@ def iniciar(usuario):
                 iniciar(usuario)
     else:
         print(client.recv(1024).decode())
+        
+        #receive_thread = threading.Thread(target=receive_messages)
+        #receive_thread.start()
+
+        write_thread = threading.Thread(target=write_messages, args=(usuario,))
+        write_thread.start()
 
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
