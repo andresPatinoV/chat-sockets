@@ -27,15 +27,8 @@ def menu():
 
 def receive_messages():
     while True:
-        try:
-            message = client.recv(1024).decode()
-            if message == "@username":
-                client.send(username.encode())
-            else:
-                print(message)
-        except:
-            client.close()
-            break
+        message = client.recv(1024).decode()
+        print(message)
 
 def write_messages(usuario):
     while True:
@@ -87,8 +80,8 @@ def iniciar(usuario):
     else:
         print(client.recv(1024).decode())
         
-        #receive_thread = threading.Thread(target=receive_messages)
-        #receive_thread.start()
+        receive_thread = threading.Thread(target=receive_messages)
+        receive_thread.start()
 
         write_thread = threading.Thread(target=write_messages, args=(usuario,))
         write_thread.start()

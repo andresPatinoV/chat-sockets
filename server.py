@@ -61,15 +61,11 @@ def insertarUsuario(nombres, apellidos, usuario, password, edad, genero):
     conexion.close()
 
 
-def broadcast(_message, username):
-    if _client == 'Servidor':
-        message = f"Servidor: {_message}"
-    else:
-        message = f"{username}: {_message}"
+def enviar_mensaje(_message, _client, _username):
+    message = f'{_username}: {_message}'
     for client in clients:
         if client != _client:
             client.send(message.encode())
-
 
 def controlador(client, address, usuario):
     if usuario.estado == 0:
@@ -112,7 +108,6 @@ def controlador(client, address, usuario):
             if message == '#exit': #exit. Desconectará al cliente del servidor
                 index = clients.index(client)
                 username = usernames[index]
-                broadcast(f"{username} se ha desconectado", 'Servidor')
                 clients.remove(client)
                 usernames.remove(username)
                 client.close()
@@ -121,8 +116,12 @@ def controlador(client, address, usuario):
                 for username in usernames:
                     show_users += f" -{username}"
                 client.send(f"Servidor: {show_users}".encode())
-            ''''else:
-                broadcast(message.decode(), usuario.usuario)'''
+            else:
+                mensaje = f'{usuario.usuario}: {message}'
+                for c in clients:
+                    print(c)
+                    if c != client:
+                        c.send(mensaje.encode())
 
 
 
@@ -130,6 +129,7 @@ def receive_connections():
     while True:
         client, address = server.accept()
         usuario = Usuario()
+        clients.append(client)
         hilo = threading.Thread(target=controlador, args=(client, address, usuario,))
         hilo.start()
         
