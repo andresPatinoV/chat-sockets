@@ -24,6 +24,8 @@ def menu():
         return('iniciar_sesion')
     if opcion == '2':
         return('registrar')
+    else:
+        return('error_opcion')
 
 def receive_messages():
     while True:
@@ -77,6 +79,8 @@ def iniciar(usuario):
                 client.send(genero.encode())
                 print(client.recv(1024).decode())
                 iniciar(usuario)
+        if opcion_server == 'error_opcion':
+            iniciar(usuario)
     else:
         print(client.recv(1024).decode())
         

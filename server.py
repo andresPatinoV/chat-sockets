@@ -100,26 +100,32 @@ def controlador(client, address, usuario):
                 insertarUsuario(nombres, apellidos, username, password, edad, genero)
                 client.send('Registro Completado'.encode())
                 controlador(client, address, usuario)
+        if opcion == 'error_opcion':
+            client.send('error_opcion'.encode())
+            controlador(client, address, usuario)
     else:
         client.send(f'Bienvenido {usuario.nombres}. Has iniciado sesión correctamente'.encode())
+        usernames.append(usuario.usuario)
+        clients.append(client)
         while True:
             message = client.recv(1024).decode()
             print(f'{usuario.usuario}: {message}')
             if message == '#exit': #exit. Desconectará al cliente del servidor
-                index = clients.index(client)
-                username = usernames[index]
                 clients.remove(client)
-                usernames.remove(username)
+                usernames.remove(usuario.usuario)
                 client.close()
+                
             if message == '#show users': #show users: Muestra el listado el todos los usuarios en todo el sistema
                 show_users = f"Usuarios conectados: "
-                for username in usernames:
-                    show_users += f" -{username}"
+                for user in usernames:
+                    show_users += f' -{user}'
                 client.send(f"Servidor: {show_users}".encode())
             else:
-                mensaje = f'{usuario.usuario}: {message}'
+                if message == '#exit':
+                    mensaje = f'Servidor: El usuario {usuario.usuario} se ha desconectado.'
+                else:
+                    mensaje = f'{usuario.usuario}: {message}'
                 for c in clients:
-                    print(c)
                     if c != client:
                         c.send(mensaje.encode())
 
@@ -129,7 +135,6 @@ def receive_connections():
     while True:
         client, address = server.accept()
         usuario = Usuario()
-        clients.append(client)
         hilo = threading.Thread(target=controlador, args=(client, address, usuario,))
         hilo.start()
         
