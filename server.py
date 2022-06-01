@@ -1,6 +1,11 @@
 import sqlite3
 import socket   
 import threading
+from modelos import *
+
+clients = []
+usernames = []
+salas = []
 
 HOST = '127.0.0.1'
 PORT = 55555
@@ -11,18 +16,7 @@ server.bind((HOST, PORT))
 server.listen()
 print(f"Server running on {HOST}:{PORT}")
 
-clients = []
-usernames = []
-
-class Usuario:
-    def __init__(self, nombres=" ", apellidos=" ", usuario=" ", password=" ", edad=0, genero="", estado = 0):
-        self.nombres = nombres
-        self.apellidos = apellidos
-        self.usuario = usuario
-        self.password = password
-        self.edad = edad
-        self.genero = genero
-        self.estado = estado
+sala_principal = Sala('principal', 'servidor')
 
 def buscarUsuario(username, password):
     conexion = sqlite3.connect('chat.db')
@@ -107,19 +101,32 @@ def controlador(client, address, usuario):
         client.send(f'Bienvenido {usuario.nombres}. Has iniciado sesión correctamente'.encode())
         usernames.append(usuario.usuario)
         clients.append(client)
+        sala_principal.agregar_usuario(usuario.usuario, client)
         while True:
             message = client.recv(1024).decode()
             print(f'{usuario.usuario}: {message}')
+
             if message == '#exit': #exit. Desconectará al cliente del servidor
                 clients.remove(client)
                 usernames.remove(usuario.usuario)
+                sala_principal.eliminar_usuario(usuario.usuario)
                 client.close()
                 
-            if message == '#show users': #show users: Muestra el listado el todos los usuarios en todo el sistema
-                show_users = f"Usuarios conectados: "
-                for user in usernames:
-                    show_users += f' -{user}'
-                client.send(f"Servidor: {show_users}".encode())
+            if message[0] == '#':
+                print('El usuario ingreso un comando')
+
+                if message == '#show users': #show users: Muestra el listado el todos los usuarios en todo el sistema
+                    show_users = f"Usuarios conectados: "
+                    for user in usernames:
+                        show_users += f' -{user}'
+                    client.send(f"Servidor: {show_users}".encode())
+
+                elif message == '#show users s':
+                    mensaje = sala_principal.ver_usuarios()
+                    client.send(f"Servidor: {mensaje}".encode())
+                
+                else:
+                    client.send(f"Servidor: Al parecer ingresaste un comando pero no lo reconocemos. Usa #help para verlos todos.".encode())
             else:
                 if message == '#exit':
                     mensaje = f'Servidor: El usuario {usuario.usuario} se ha desconectado.'

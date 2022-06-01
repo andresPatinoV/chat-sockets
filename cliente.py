@@ -40,6 +40,12 @@ def write_messages(usuario):
             print('Sesion cerrada')
             client.close()
             sys.exit()
+
+        elif message == '#help':
+            print('COMANDOS DISPONIBLES:')
+            print('#show users : Muestra todos los usuarios conectados.')
+            print('#show users s : Muestra todos los usuarios conectados en la sala actual.')
+            print('#exit : Salir del chat.')
         else:
             client.send(message.encode())
 
