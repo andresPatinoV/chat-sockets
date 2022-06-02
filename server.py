@@ -17,6 +17,7 @@ server.listen()
 print(f"Server running on {HOST}:{PORT}")
 
 sala_principal = Sala('principal', 'servidor')
+salas.append(sala_principal)
 
 def buscarUsuario(username, password):
     conexion = sqlite3.connect('chat.db')
@@ -102,6 +103,7 @@ def controlador(client, address, usuario):
         usernames.append(usuario.usuario)
         clients.append(client)
         sala_principal.agregar_usuario(usuario.usuario, client)
+        sala_actual = sala_principal.nombre
         while True:
             message = client.recv(1024).decode()
             print(f'{usuario.usuario}: {message}')
@@ -109,12 +111,14 @@ def controlador(client, address, usuario):
             if message == '#exit': #exit. Desconectará al cliente del servidor
                 clients.remove(client)
                 usernames.remove(usuario.usuario)
-                sala_principal.eliminar_usuario(usuario.usuario)
+                for s in salas:
+                    if s.nombre == sala_actual:
+                        s.eliminar_usuario(usuario.usuario)
                 client.close()
                 
             if message[0] == '#':
                 print('El usuario ingreso un comando')
-
+                message_dividido = message.split(' ')
                 if message == '#show users': #show users: Muestra el listado el todos los usuarios en todo el sistema
                     show_users = f"Usuarios conectados: "
                     for user in usernames:
@@ -125,16 +129,70 @@ def controlador(client, address, usuario):
                     mensaje = sala_principal.ver_usuarios()
                     client.send(f"Servidor: {mensaje}".encode())
                 
+                elif message == '#lR':
+                    mensaje = f'Salas Disponibles: '
+                    for s in salas:
+                        mensaje += f'-{s.nombre} {len(s.usuarios_conectados)} '
+                    client.send(mensaje.encode())
+
+                elif message == '#aR':
+                    client.send(f'Estas en la sala {sala_actual}'.encode())
+
+                elif message == '#eR':
+                    if sala_actual != 'principal':
+                        for s in salas:
+                            if s.nombre == sala_actual:
+                                s.eliminar_usuario(usuario.usuario)
+                        sala_actual = sala_principal.nombre
+                        sala_principal.agregar_usuario(usuario.usuario, client)
+                        client.send(f'Bienvenido a la sala Principal, {usuario.usuario}'.encode())
+                    else:
+                        client.send(f'Ya estas en la sala Principal'.encode())
+
+
+                elif message_dividido[0] == '#cR':
+                    sala = Sala(message_dividido[1], usuario.usuario)
+                    salas.append(sala)
+                    sala.agregar_usuario(usuario.usuario, client)
+                    for s in salas:
+                        if s.nombre == sala_actual:
+                            s.eliminar_usuario(usuario.usuario)
+                    sala_actual = message_dividido[1]
+                    client.send(f'Bienvenido a tu sala "{sala_actual}"'.encode())
+
+
+
+                elif message_dividido[0] == '#gR':
+                    sala_buscar = message_dividido[1]
+                    sala_anterior = sala_actual
+                    for s in salas:
+                        if s.nombre == sala_buscar:
+                            s.agregar_usuario(usuario.usuario, client)
+                            sala_actual = s.nombre
+                    if sala_actual == sala_anterior:
+                        client.send(f'La sala "{sala_buscar}" NO existe'.encode())
+                    else:
+                        for s in salas:
+                            if s.nombre == sala_anterior:
+                                s.eliminar_usuario(usuario.usuario)
+                        client.send(f'Bienvenido a la sala "{sala_buscar}".'.encode())
+                
+
                 else:
                     client.send(f"Servidor: Al parecer ingresaste un comando pero no lo reconocemos. Usa #help para verlos todos.".encode())
+
             else:
                 if message == '#exit':
                     mensaje = f'Servidor: El usuario {usuario.usuario} se ha desconectado.'
                 else:
                     mensaje = f'{usuario.usuario}: {message}'
-                for c in clients:
-                    if c != client:
-                        c.send(mensaje.encode())
+
+                for s in salas:
+                    if s.nombre == sala_actual:
+                        for u in s.usuarios_conectados:
+                            if u[1] != client:
+                                u[1].send(mensaje.encode())
+
 
 
 
